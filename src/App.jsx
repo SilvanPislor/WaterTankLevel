@@ -10,8 +10,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const supabaseUrl = "https://YOUR_SUPABASE_URL.supabase.co";
-const supabaseKey = "YOUR_SUPABASE_ANON_KEY";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
