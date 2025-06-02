@@ -1,243 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Water Level Monitor</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* Base Styles */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-
-        /* Top Banner */
-        .top-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 40px;
-            background: #444;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            font-size: 14px;
-            z-index: 1000;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            top: 40px;
-            left: 0;
-            width: 60px;
-            height: calc(100% - 40px);
-            background: #333;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 20px;
-        }
-
-        .menu-icon {
-            width: 40px;
-            height: 40px;
-            margin: 10px 0;
-            background: gray;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .menu-icon:hover {
-            background: #555;
-        }
-
-        /* Main Content */
-        .content-wrapper {
-            margin-left: 60px;
-            margin-top: 40px;
-            padding: 20px;
-        }
-
-        h2 {
-            margin-top: 0;
-        }
-
-        /* Table Styles */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            margin-bottom: 40px;
-        }
-
-        th, td {
-            border: 1px solid #ccc;
-            padding: 10px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #eee;
-        }
-
-        /* Chart Container */
-        #chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Responsive Canvas */
-        canvas {
-            max-width: 100%;
-            height: auto;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Water Level Monitor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .top-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 40px;
+      background: #444;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-left: 20px;
+      padding-right: 20px;
+      font-size: 14px;
+      z-index: 1000;
+    }
+    .main {
+      margin-top: 60px;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    canvas {
+      max-width: 100%;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
-    <!-- Top Banner -->
-    <div class="top-banner">
-        <span>Water Level Monitor</span>
-        <span id="current-user">Current User: <span id="user">Guest</span></span>
-    </div>
+  <div class="top-banner">
+    <div>Water Level Dashboard</div>
+    <div id="current-user">Logged in as Admin</div>
+  </div>
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="menu-icon" id="homeIcon">🏠</div>
-        <div class="menu-icon" id="refreshIcon">🔄</div>
-    </div>
+  <div class="main">
+    <h2>Recent Water Levels</h2>
+    <table id="levelTable">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Water Level (cm)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-    <!-- Main Content -->
-    <div class="content-wrapper">
-        <h2>Latest Water Levels</h2>
-        <table id="data-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Level</th>
-                    <th>Timestamp</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Data will be inserted here -->
-            </tbody>
-        </table>
+    <canvas id="levelChart"></canvas>
+  </div>
 
-        <div id="chart-container">
-            <canvas id="waterChart"></canvas>
-        </div>
-    </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    async function fetchWaterLevels() {
+      try {
+        const response = await fetch('/api/pullData.js');
+        const data = await response.json();
+        return data.levels || [];
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        return [];
+      }
+    }
 
-    <!-- JavaScript -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const user = localStorage.getItem("user") || "Guest";
-            document.getElementById("user").textContent = user;
+    function renderTable(levels) {
+      const tbody = document.querySelector('#levelTable tbody');
+      tbody.innerHTML = '';
+      levels.forEach(({ level, timestamp }) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${new Date(timestamp).toLocaleString()}</td>
+          <td>${level.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
 
-            fetchData();
-        });
-
-        async function fetchData() {
-            try {
-                const response = await fetch('/api/pullData.js');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-
-                if (!Array.isArray(data)) {
-                    throw new Error('Data format is incorrect');
-                }
-
-                // Sort data by timestamp descending
-                data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-                // Take the latest 100 entries
-                const latestData = data.slice(0, 100).reverse(); // Reverse to have oldest first
-
-                populateTable(latestData);
-                renderChart(latestData);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
+    function renderChart(levels) {
+      const ctx = document.getElementById('levelChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: levels.map(item => new Date(item.timestamp).toLocaleTimeString()),
+          datasets: [{
+            label: 'Water Level (cm)',
+            data: levels.map(item => item.level),
+            fill: false,
+            borderColor: 'blue',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            title: { display: true, text: 'Live Water Levels' }
+          }
         }
+      });
+    }
 
-        function populateTable(data) {
-            const tableBody = document.querySelector('#data-table tbody');
-            tableBody.innerHTML = ''; // Clear existing data
+    async function init() {
+      const levels = await fetchWaterLevels();
+      renderTable(levels);
+      renderChart(levels);
+    }
 
-            data.forEach(entry => {
-                const row = document.createElement('tr');
-
-                const idCell = document.createElement('td');
-                idCell.textContent = entry.id;
-
-                const levelCell = document.createElement('td');
-                levelCell.textContent = entry.level;
-
-                const timestampCell = document.createElement('td');
-                timestampCell.textContent = new Date(entry.timestamp).toLocaleString();
-
-                row.appendChild(idCell);
-                row.appendChild(levelCell);
-                row.appendChild(timestampCell);
-
-                tableBody.appendChild(row);
-            });
-        }
-
-        function renderChart(data) {
-            const ctx = document.getElementById('waterChart').getContext('2d');
-
-            const labels = data.map(entry => new Date(entry.timestamp).toLocaleString());
-            const levels = data.map(entry => entry.level);
-
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Water Level',
-                        data: levels,
-                        borderColor: 'rgba(30, 144, 255, 1)',
-                        backgroundColor: 'rgba(30, 144, 255, 0.2)',
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Timestamp'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Level'
-                            },
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        }
-    </script>
+    init();
+  </script>
 </body>
 </html>
