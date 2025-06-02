@@ -21,43 +21,51 @@ export default function App() {
 
   // Fetch the latest water level live (poll every 5s)
   useEffect(() => {
-    async function fetchLatest() {
-      const { data, error } = await supabase
-        .from("water_levels")
-        .select("*")
-        .order("timestamp", { ascending: false })
-        .limit(1);
+  async function fetchLatest() {
+    const { data, error } = await supabase
+      .from("water_levels")
+      .select("*")
+      .order("timestamp", { ascending: false })
+      .limit(1);
 
-      if (!error && data.length > 0) {
-        setLiveLevel(data[0].level);
-      }
+    console.log("fetchLatest data:", data);
+    console.log("fetchLatest error:", error);
+
+    if (!error && data.length > 0) {
+      setLiveLevel(data[0].level);
     }
+  }
 
-    fetchLatest();
-    const interval = setInterval(fetchLatest, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  fetchLatest();
+  const interval = setInterval(fetchLatest, 5000);
+  return () => clearInterval(interval);
+}, []);
+
 
   // Fetch history once on mount (last 20 readings)
   useEffect(() => {
-    async function fetchHistory() {
-      const { data, error } = await supabase
-        .from("water_levels")
-        .select("*")
-        .order("timestamp", { ascending: true })
-        .limit(20);
+  async function fetchHistory() {
+    const { data, error } = await supabase
+      .from("water_levels")
+      .select("*")
+      .order("timestamp", { ascending: true })
+      .limit(20);
 
-      if (!error) {
-        const formatted = data.map((d) => ({
-          ...d,
-          time: new Date(d.timestamp).toLocaleTimeString(),
-        }));
-        setHistory(formatted);
-      }
+    console.log("fetchHistory data:", data);
+    console.log("fetchHistory error:", error);
+
+    if (!error) {
+      const formatted = data.map((d) => ({
+        ...d,
+        time: new Date(d.timestamp).toLocaleTimeString(),
+      }));
+      setHistory(formatted);
     }
+  }
 
-    fetchHistory();
-  }, []);
+  fetchHistory();
+}, []);
+
 
   return (
     <div className="container">
