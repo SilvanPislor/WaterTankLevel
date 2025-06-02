@@ -1,0 +1,1259 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>On-Call Roster</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: block;
+            height: 100%;
+            width: 100%;
+        }
+        .top-banner {
+            position: fixed;   /* Keeps it at the top */
+            top: 0;
+            left: 0;
+            width: 100%; 
+            height: 40px;
+            background: #444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 20px;
+            font-size: 14px;
+            z-index: 1000; /* Ensures it stays above other elements */
+        }
+        #current-user {
+            margin-right: 40px; /* Moves the text further left */
+        }
+        .content-wrapper {
+            display: flex;
+            flex-grow: 1;
+            margin-top: 40px;  /*Prevents overlap with banner */
+            margin-left: 60px; /* Prevents overlap with sidebar */
+        }
+        .sidebar {
+            position: fixed;
+            top: 40px;
+            width: 60px;
+            height: 100%;
+            background: #333;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            overflow-y: auto;
+            max-height: calc(100vh - 80px);
+            padding-right: 20px;
+        }
+        .calendar-view {
+            display: block;
+        }
+        .month-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .month-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+            width: 14.28%; /* Equal width for all days */
+        }
+        th {
+            background-color: lightgray;
+        }
+        td {
+            height: 80px;
+            vertical-align: top;
+            background: white;
+        }
+        .section-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;  /* Space between each person */
+        }
+        .person-section {
+            padding: 5px;
+            border: 1px solid #ccc; /* Optional, for borders around each person */
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .weekend {
+            background-color: #ececec;
+        }
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            margin: 10px;
+            background: gray;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .menu-icon:hover {
+            background: #555;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            display: none;
+        }
+        .log-view {
+            display: none;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            max-width: 500px;
+            height: 70vh;
+            overflow-y: auto;
+            font-size: 14px;
+            background: #f9f9f9;
+        }
+        .edit-view {
+            display: none;
+        }
+        .group {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f0f0f0;
+        }
+
+        .person {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+        }
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            width: 250px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        .popup p {
+            margin: 0;
+            padding: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .person-option {
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 14px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .person-option:hover {
+            filter: brightness(85%);
+            color: white;
+        }
+        .close-btn {
+            display: block;
+            text-align: center;
+            background: #d9534f;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+        .popup .close-btn:hover {
+            background: #c9302c;
+        }
+        .remove-btn {
+            display: block;
+            text-align: center;
+            background: #f39c12;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+        .remove-btn:hover {
+            background: #e67e22;
+        }
+
+        .main-content.login-view {
+            background-color: rgb(33, 40, 48);
+            padding: 40px;
+            text-align: center;
+        }
+
+        .main-content.login-view h2 {
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        label {
+            color: white;
+            display: block;
+            text-align: left;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        #loginView input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: white;
+            font-size: 14px;
+        }
+
+        .login-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #1e90ff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            width: 15%;
+        }
+
+        .login-button:hover {
+            background-color: #0f78d1;
+        }
+
+    </style>
+</head>
+<body>
+    
+    <div class="top-banner">
+        <span>MAFNZ On-Call Roster <span id="current-year"></span></span>
+        <span id="current-user">Current User: <span id="user"></span>
+    </div>
+
+    <div class="sidebar">
+        <div class="menu-icon" id="calendarIcon">📅</div>
+        <div class="menu-icon" id="editIcon">✏️</div>
+        <div class="menu-icon" id="logIcon">📝</div>
+        <div class="menu-icon" id="loginIcon">🔒</div>
+    </div>
+
+    <div class="content-wrapper">
+        <!-- Login Screen -->
+        <div class="main-content login-view" id="loginView">
+            <h2>Login</h2>
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter username">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter password">
+            <div class="login-button" onclick="login()">Login</div>
+        </div>
+        
+        <!-- Calendar View -->
+        <div class="main-content calendar-view" id="calendarView">
+            <div class="calendar-container" id="calendar-container"></div>
+        </div>
+    
+        <!-- Edit View -->
+        <div class="main-content edit-view" id="editView">
+            <h2>Edit On-Call Groups</h2>
+            <input type="text" id="groupName" placeholder="Enter group name">
+            <button onclick="createGroup()">Create Group</button>
+            <div id="groupsContainer"></div>
+            <div>
+                <button onclick="autoGenerateRoster()">Auto Generate Roster</button>
+            </div>
+        </div>
+    
+        <!-- Log View -->
+        <div class="main-content log-view" id="logView">
+            <h2>Change Log</h2>
+            <div class="log" id="log">Log:</div>
+        </div>
+    </div>
+
+    <script>
+        const loginView = document.getElementById('loginView');
+        const calendarView = document.getElementById('calendarView');
+        const editView = document.getElementById('editView');
+        const logView = document.getElementById('logView');
+        const loginIcon = document.getElementById('loginIcon');
+        const calendarIcon = document.getElementById('calendarIcon');
+        const editIcon = document.getElementById('editIcon');
+        const calendar = document.getElementById('calendar');
+        const log = document.getElementById('log');
+        const groupsContainer = document.getElementById('groupsContainer');
+        const groupNameInput = document.getElementById('groupName');
+        const today = new Date();
+        const year = today.getFullYear();
+        let selectedDay = null;
+        let selectedGroup = null;
+        let groups = {};
+        let currentLiveRoster = {};
+        let storedUser = localStorage.getItem("user") || "Guest";
+        let password = localStorage.getItem("password") || "";
+        let user = null;
+        let currentLog = {};
+        let newRoster = {};
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (password !== "mafepb") {
+                loginView.style.display = 'block';
+            } else {
+                calendarView.style.display = 'block';
+            }
+            document.getElementById("current-year").textContent = year;
+            document.getElementById("user").textContent = localStorage.getItem("user") || "Guest";
+            (async () => {
+                groups = await getList("Groups");
+                renderGroups();
+                generateYearCalendar(year, groups);
+        
+                currentLiveRoster = await getList("Roster");
+                renderCalendar(currentLiveRoster);
+
+                currentLog = await getList("Log");
+                // If currentLog is null, undefined, or an empty object, initialize it
+                if (!currentLog || Object.keys(currentLog).length === 0) {
+                    currentLog = {}; // Set an empty object
+                    saveList("Log", currentLog); // Save it to the database
+                }
+            })();
+        });
+
+        function login() {
+            user = document.getElementById('username').value;
+            password = document.getElementById('password').value;
+            localStorage.setItem("user", user);
+            localStorage.setItem("password", password);
+    
+            // Placeholder logic
+            if (username && password == "mafepb") {
+                alert(`Logged in as ${user}`);
+                document.getElementById("user").textContent = localStorage.getItem("user");
+                loginView.style.display = 'none';
+                calendarView.style.display = 'block';
+            } else {
+                alert("Incorrect User or Password.");
+            }
+        }
+
+        function showLoginView() {
+            loginView.style.display = 'block';
+            calendarView.style.display = 'none';
+            editView.style.display = 'none';
+            logView.style.display = 'none';
+            
+        }
+
+        function showCalendarView() {
+            if (password == "mafepb") {
+                calendarView.style.display = 'block';
+                generateYearCalendar(year, groups);
+                loginView.style.display = 'none';
+                editView.style.display = 'none';
+                logView.style.display = 'none';
+                (async () => {
+                    currentLiveRoster = await getList("Roster");
+                    renderCalendar(currentLiveRoster);
+                })();
+            }
+        }
+
+        function showEditView() {
+            if (password == "mafepb") {
+                loginView.style.display = 'none';
+                calendarView.style.display = 'none';
+                editView.style.display = 'block';
+                logView.style.display = 'none';
+            }
+        }
+
+        function showLogView() {
+            if (password == "mafepb") {
+                loginView.style.display = 'none';
+                calendarView.style.display = 'none';
+                editView.style.display = 'none';
+                logView.style.display = 'block';
+                (async () => {
+                    const logElement = document.getElementById("log");
+                    logElement.innerHTML = '';  // Clears the log container
+                    
+                    currentLog = await getList("Log");
+                
+                    // Loop through each log entry in currentLog object
+                    Object.entries(currentLog).forEach(([key, entry]) => {
+                        const logEntry = document.createElement("p");
+                        logEntry.textContent = entry; // The value of the entry is the log message
+                
+                        // Append the log entry to the log container
+                        logElement.appendChild(logEntry);
+                    });
+                })();
+            }
+        }                    
+
+        loginIcon.onclick = showLoginView;
+        calendarIcon.onclick = showCalendarView;
+        editIcon.onclick = showEditView;
+        logIcon.onclick = showLogView;
+
+        function generateYearCalendar(year, rotationLists) {
+            const container = document.getElementById("calendar-container");
+            container.innerHTML = "";
+        
+            // Get the current date
+            const currentDate = new Date();
+            const currentDay = currentDate.getDate();
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+        
+            for (let month = 0; month < 12; month++) {
+                currentLiveRoster[month] = {};
+                let monthSection = document.createElement("div");
+                monthSection.classList.add("month-section");
+                monthSection.id = `month-${month}`; // Assign a unique ID based on the month index
+        
+                let monthTitle = document.createElement("h2");
+                monthTitle.classList.add("month-title");
+                monthTitle.textContent = new Date(year, month).toLocaleString('default', { month: 'long' });
+        
+                let table = document.createElement("table");
+        
+                // Table Header (Weekdays)
+                let thead = document.createElement("thead");
+                let headerRow = document.createElement("tr");
+                const weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                weekDays.forEach(day => {
+                    let th = document.createElement("th");
+                    th.textContent = day;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);  // Append header at the top of the table
+        
+                // Table Body (Days)
+                let tbody = document.createElement("tbody");
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const totalDays = lastDay.getDate();
+        
+                // Get the first weekday (JS: Sunday = 0, Monday = 1, ..., Saturday = 6)
+                let firstWeekDay = firstDay.getDay();
+                firstWeekDay = firstWeekDay === 0 ? 6 : firstWeekDay - 1; // Shift to Monday-starting week
+        
+                let dayCounter = 1;
+                let rotationIndex = 0;
+                let rows = Math.ceil((totalDays + firstWeekDay) / 7); // Calculate how many rows to fill
+        
+                // Loop through the rows (weeks)
+                for (let i = 0; i < rows; i++) {
+                    let row = document.createElement("tr");
+        
+                    // Loop through each day of the week (7 days)
+                    for (let j = 0; j < 7; j++) {
+                        let cell = document.createElement("td");
+        
+                        // If it's before the first day of the month or after the last day, leave the cell empty
+                        if ((i === 0 && j < firstWeekDay) || dayCounter > totalDays) {
+                            cell.textContent = "";  // Empty cell
+                        } else {
+                            currentLiveRoster[month][dayCounter] = {};
+                            // Create a container for sections for each group in the rotation
+                            let sectionContainer = document.createElement("div");
+                            sectionContainer.classList.add("section-container");
+        
+                            Object.entries(rotationLists).forEach(([groupName, group]) => {
+                                currentLiveRoster[month][dayCounter][groupName] = null;
+                                // Create a section container for each group
+                                let groupSectionContainer = document.createElement("div");
+                                groupSectionContainer.classList.add("group-container");
+                                groupSectionContainer.dataset.groupName = groupName; // Store group name for reference
+        
+                                // Create an inner section for displaying the selected person
+                                let section = document.createElement("div");
+                                section.classList.add("person-section");
+                                section.textContent = groupName;
+                                section.style.cursor = "pointer";
+        
+                                // Left-click event to open selection popup
+                                section.addEventListener("click", () => {
+                                    // Remove existing popups to avoid duplicates
+                                    let existingPopup = document.querySelector(".popup");
+                                    if (existingPopup) {
+                                        document.body.removeChild(existingPopup);
+                                    }
+        
+                                    // Validate: Check if it exists and has at least 2 letters
+                                    if (storedUser && storedUser.trim().length >= 2) {
+                                        user = storedUser.trim(); // Store in 'user' variable
+                                      
+                                        let popup = document.createElement("div");
+                                        popup.classList.add("popup");
+                                        popup.innerHTML = `<p>Select a person from ${groupName}:</p>`;
+                                            
+                                        // Check if the group has people
+                                        if (group.length === 0) {
+                                            let noPeopleMsg = document.createElement("p");
+                                            noPeopleMsg.textContent = "No people available in this group.";
+                                            popup.appendChild(noPeopleMsg);
+        
+                                        } else {
+                                            // Create a list of names to select from
+                                            group.forEach(person => {
+                                                let option = document.createElement("div");
+                                                option.classList.add("person-option");
+                                                option.textContent = person.name;
+                                                option.style.backgroundColor = person.color;
+                                                option.style.cursor = "pointer";
+        
+                                                // Click event to select a person
+                                                option.addEventListener("click", () => {
+                                                    // adding person and color to the section
+                                                    section.textContent = person.name;
+                                                    section.style.backgroundColor = person.color;
+                                                    document.body.removeChild(popup); // Close popup
+        
+                                                    // adding person and colour to list of days in months of the year
+                                                    selectedDay = parseInt(cell.querySelector(".day-number").textContent.trim(), 10);
+                                                    selectedGroup = groupSectionContainer.dataset.groupName
+                                                    currentLiveRoster[month][selectedDay][selectedGroup] = { name: person.name, color: person.color };
+                                                    saveList("Roster", currentLiveRoster);
+        
+                                                    // logging user action
+                                                    const now = new Date();
+                                                    const timestamp = now.toLocaleTimeString(); // Get current time
+                                                    // Manually format the date as DD/MM/YYYY
+                                                    const thisDay = String(now.getDate()).padStart(2, '0');
+                                                    const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                                                    const thisYear = now.getFullYear();
+                                                    const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                                                    const monthNumber = month + 1;
+                                                    (async () => {
+                                                        currentLog = await getList("Log");
+                                                        const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                                                        const logEntry = `[${formattedDate} ${timestamp}] ${user} assigned ${person.name} on call on ${selectedDay}/${monthNumber}/${year}`;
+                                                        currentLog[logKey] = logEntry;
+                                                        // Now save the updated currentLog
+                                                        saveList("Log", currentLog);
+                                                    })(); 
+                                                });
+                                                popup.appendChild(option);
+                                            });
+        
+                                            // Create a remove button
+                                            selectedDay = parseInt(cell.querySelector(".day-number").textContent.trim(), 10);
+                                            selectedGroup = groupSectionContainer.dataset.groupName;
+                                            
+                                            if (currentLiveRoster[month][selectedDay][selectedGroup] !== null) {
+                                                const removeButton = document.createElement("div");
+                                                removeButton.classList.add("remove-btn");
+                                                removeButton.textContent = "Remove";
+                                                
+                                                // Click event to remove the popup
+                                                removeButton.addEventListener("click", () => {
+                                                    // Log the action
+                                                    const now = new Date();
+                                                    const timestamp = now.toLocaleTimeString(); // Get current time
+                                                    const thisDay = String(now.getDate()).padStart(2, '0');
+                                                    const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                                                    const thisYear = now.getFullYear();
+                                                    const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                                                    const monthNumber = month + 1;
+                                                    const removedPerson = section.textContent;
+                                                    (async () => {
+                                                        currentLog = await getList("Log");
+                                                        const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                                                        const logEntry = `[${formattedDate} ${timestamp}] ${user} removed ${removedPerson} from on-call on ${selectedDay}/${monthNumber}/${year}`;
+                                                        currentLog[logKey] = logEntry;
+                                                        saveList("Log", currentLog);
+                                                    })();
+        
+                                                    section.textContent = groupName; // Reset text to group name or placeholder
+                                                    section.style.backgroundColor = ""; // Reset background color
+                                                    currentLiveRoster[month][selectedDay][selectedGroup] = null;
+                                                    saveList("Roster", currentLiveRoster);
+                                                    document.body.removeChild(popup);
+                                                });
+                                                popup.appendChild(removeButton);
+                                            }
+                                        }
+                                        // Create an exit button
+                                        let exitButton = document.createElement("div");
+                                        exitButton.classList.add("close-btn");
+                                        exitButton.textContent = "Close";
+                                        
+                                        // Click event to remove the popup
+                                        exitButton.addEventListener("click", () => {
+                                            document.body.removeChild(popup);
+                                        });
+                                        popup.appendChild(exitButton);
+                                        document.body.appendChild(popup);
+                                    } else {
+                                        alert("No valid user is logged in.");
+                                        user = null; // Reset the user variable if invalid
+                                    }
+                                });
+                                // Append section to the group container
+                                groupSectionContainer.appendChild(section);
+                            
+                                // Append group container to the main section container
+                                sectionContainer.appendChild(groupSectionContainer);
+                            });
+        
+                            // Append the section container to the cell
+                            cell.appendChild(sectionContainer);
+                            
+                            // Add the day number to the cell
+                            let dayNumber = document.createElement("div");
+                            dayNumber.classList.add("day-number");
+                            dayNumber.innerHTML = `<strong>${dayCounter}</strong>`;
+                            cell.prepend(dayNumber);
+        
+                            // Add a class for weekends (Saturday or Sunday)
+                            if (j >= 5) {
+                                cell.classList.add("weekend");
+                            }
+                            
+                            // Highlight current day with gray background
+                            if (dayCounter === currentDay && month === currentMonth && year === currentYear) {
+                                //cell.style.backgroundColor = "gray";
+                                cell.style.border = "5px solid red";
+                            }
+                            
+                            // Check if it's the current week (apply thick border)
+                            //const currentWeekStart = new Date(currentDate);
+                            //currentWeekStart.setDate(currentDay - currentDate.getDay() + 1); // Set to Monday of the current week
+                            //const currentWeekEnd = new Date(currentDate);
+                            //currentWeekEnd.setDate(currentDay - currentDate.getDay() + 7); // Set to Sunday of the current week
+        
+                            const currentCellDate = new Date(year, month, dayCounter);
+        
+                            //if (currentCellDate >= currentWeekStart && currentCellDate <= currentWeekEnd) {
+                            //    row.style.border = "4px solid black"; // Apply thick border for the current week
+                            //}
+        
+                            // Increment the day counter for the next day
+                            cell.setAttribute("data-day", dayCounter);
+                            dayCounter++;
+                        }
+                        // Append the cell to the row
+                        row.appendChild(cell);
+                    }
+                    // Append the row to the table body
+                    tbody.appendChild(row);
+                }
+                // Append tbody to the table
+                table.appendChild(tbody);
+        
+                // Append month title and table to the month section
+                monthSection.appendChild(monthTitle);
+                monthSection.appendChild(table);
+        
+                // Append the month section to the container
+                container.appendChild(monthSection);
+            }
+
+            // Scroll to the current month after the calendar is generated
+            const currentMonthSection = document.getElementById(`month-${currentMonth}`);
+            if (currentMonthSection) {
+                currentMonthSection.scrollIntoView({ behavior: "smooth" });
+            }
+        }
+
+        function createGroup() {
+            // Validate: Check if it exists and has at least 2 letters
+            if (storedUser && storedUser.trim().length >= 2) {
+                user = storedUser.trim(); // Store in 'user' variable
+                
+                const groupName = groupNameInput.value.trim();
+                if (!groupName) return alert("Please enter a group name.");
+            
+                // Initialize the group as an empty array
+                groups[groupName] = [];
+                saveList("Groups", groups);
+    
+                const now = new Date();
+                const timestamp = now.toLocaleTimeString(); // Get current time
+                const thisDay = String(now.getDate()).padStart(2, '0');
+                const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                const thisYear = now.getFullYear();
+                const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                (async () => {
+                    currentLog = await getList("Log");
+                    const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                    const logEntry = `[${formattedDate} ${timestamp}] ${user} added ${groupName} to Groups`;
+                    currentLog[logKey] = logEntry;
+                    saveList("Log", currentLog);
+                })();
+            
+                const groupDiv = document.createElement('div');
+                groupDiv.classList.add('group');
+                groupDiv.innerHTML = `<strong>${groupName}</strong> 
+                    <button onclick="addPerson('${groupName}')">Add Person</button>
+                    <button onclick="deleteGroup('${groupName}', this)">Delete Group</button>
+                    <div id="group-${groupName}"></div>`;
+                groupsContainer.appendChild(groupDiv);
+            
+                groupNameInput.value = '';
+            } else {
+                alert("No valid user is logged in.");
+                user = null; // Reset the user variable if invalid
+            }
+        }
+        
+        function deleteGroup(groupName, btn) {
+            // Validate: Check if it exists and has at least 2 letters
+            if (storedUser && storedUser.trim().length >= 2) {
+                user = storedUser.trim(); // Store in 'user' variable
+                
+                if (confirm(`Are you sure you want to delete ${groupName}?`)) {    
+                    delete groups[groupName];
+                    btn.parentElement.remove();
+                    saveList("Groups", groups);
+    
+                    const now = new Date();
+                        const timestamp = now.toLocaleTimeString(); // Get current time
+                        const thisDay = String(now.getDate()).padStart(2, '0');
+                        const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                        const thisYear = now.getFullYear();
+                        const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                        (async () => {
+                            currentLog = await getList("Log");
+                            const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                            const logEntry = `[${formattedDate} ${timestamp}] ${user} deleted ${groupName} from Groups`;
+                            currentLog[logKey] = logEntry;
+                            saveList("Log", currentLog);
+                        })();
+                }
+            } else {
+                alert("No valid user is logged in.");
+                user = null; // Reset the user variable if invalid
+            }
+        }
+        
+        function addPerson(groupName) {
+            const personName = prompt("Enter person's name:");
+            if (!personName) return;
+
+            // Check if the person's name already exists in the group
+            const personExists = groups[groupName].some(p => p.name === personName.trim());
+            if (personExists) {
+                // If the name already exists, show an alert and don't add the person
+                alert(`The name "${personName.trim()}" already exists in the group.`);
+            } else {
+                // Generate a random color for the person
+                const color = generateColor();
+            
+                // Create the person object with name and color
+                const person = { name: personName, color: color };
+            
+                // Push the person object into the group's array
+                groups[groupName].push(person);
+                saveList("Groups", groups);
+            
+                const personDiv = document.createElement('div');
+                personDiv.classList.add('person');
+                personDiv.style.background = color;
+                personDiv.style.cursor = 'pointer';
+                personDiv.textContent = personName;
+            
+                // Handle right-click to delete the person
+                personDiv.oncontextmenu = function(event) {
+                    event.preventDefault();
+                    // Validate: Check if it exists and has at least 2 letters
+                    if (storedUser && storedUser.trim().length >= 2) {
+                        user = storedUser.trim(); // Store in 'user' variable
+                        
+                        if (confirm(`Are you sure you want to delete ${personName}?`)) {
+                            // Remove the person from the group's array
+                            groups[groupName] = groups[groupName].filter(p => p.name !== personName);
+                            personDiv.remove();
+                            saveList("Groups", groups);
+    
+                            // Log the action if necessary
+                            const now = new Date();
+                            const timestamp = now.toLocaleTimeString(); // Get current time
+                            const thisDay = String(now.getDate()).padStart(2, '0');
+                            const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                            const thisYear = now.getFullYear();
+                            const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                        
+                            // Log action
+                            (async () => {
+                                currentLog = await getList("Log");
+                                const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                                const logEntry = `[${formattedDate} ${timestamp}] ${user} has deleted ${personName} from the group ${groupName}`;
+                                currentLog[logKey] = logEntry;
+                                saveList("Log", currentLog);
+                            })();
+                        }
+                    } else {
+                        alert("No valid user is logged in.");
+                        user = null; // Reset the user variable if invalid
+                    }
+                };
+    
+                // Handle left-click to replace the person's name
+                personDiv.onclick = function(event) {
+                    // Ensure it's a left-click (button 0)
+                    if (event.button === 0) {
+                        // Validate: Check if it exists and has at least 2 letters
+                        if (storedUser && storedUser.trim().length >= 2) {
+                            user = storedUser.trim(); // Store in 'user' variable
+
+                            const oldName = personName;
+                            const newName = prompt(`Are you sure you want to replace ${personName}? If so, enter a new person's name:`);
+                            const personExists = groups[groupName].some(p => p.name === newName.trim());
+                            if (personExists) {
+                                // If the name already exists, show an alert and don't replace the name
+                                alert(`The name "${newName.trim()}" already exists in the group.`);
+                            } else if (newName && newName.trim() !== "") {
+                                // Replace the old name with the new name
+                                groups[groupName] = groups[groupName].map(p => {
+                                    if (p.name === personName) {
+                                        p.name = newName.trim(); // Replace the name
+                                    }
+                                    return p;
+                                });
+    
+                                for (let topKey in currentLiveRoster) {
+                                    const group = [topKey];
+                    
+                                    // Iterate over the nested keys (1, 2, 3, ...)
+                                    for (let subKey in group) {
+                                        const positions = group[subKey];
+                    
+                                        // Dynamically check and update based on the groupName
+                                        if (positions[groupName] && positions[groupName].name === personDiv.textContent) {
+                                            positions[groupName].name = newName.trim();
+                                        }
+                                    }
+                                }
+    
+                                // Log the action if necessary
+                                const now = new Date();
+                                const timestamp = now.toLocaleTimeString(); // Get current time
+                                const thisDay = String(now.getDate()).padStart(2, '0');
+                                const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                                const thisYear = now.getFullYear();
+                                const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                            
+                                // Log action
+                                (async () => {
+                                    currentLog = await getList("Log");
+                                    const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                                    const logEntry = `[${formattedDate} ${timestamp}] ${user} has replaced ${oldName} with ${newName.trim()}`;
+                                    currentLog[logKey] = logEntry;
+                                    saveList("Log", currentLog);
+                                })();
+                
+                                // Update the displayed name in the div
+                                personDiv.textContent = newName;
+                    
+                                // Save the updated groups and roster
+                                saveList("Groups", groups);
+                                saveList("Roster", currentLiveRoster);
+                            }
+                        } else {
+                            alert("No valid user is logged in.");
+                            user = null; // Reset the user variable if invalid
+                        }
+                    }
+                };
+            document.getElementById(`group-${groupName}`).appendChild(personDiv);
+            }
+        }
+
+        function renderCalendar(currentLiveRoster) {
+            const container = document.getElementById("calendar-container");
+        
+            for (let month = 0; month < 12; month++) {
+                let monthSections = container.querySelectorAll(".month-section");
+                let monthSection = monthSections[month];
+        
+                for (let day = 1; day <= 31; day++) {
+                    if (currentLiveRoster[month][day]) {
+                        const dayCell = monthSection.querySelector(`td[data-day="${day}"]`);
+        
+                        if (!dayCell) {
+                            console.warn(`No day cell found for day ${day} in month ${month}`);
+                            continue; // Skip this iteration if no corresponding day cell exists
+                        }
+        
+                        Object.entries(currentLiveRoster[month][day]).forEach(([groupName, person]) => {
+                            if (person && person.name && person.color) {
+                                const groupSectionContainer = dayCell.querySelector(`.group-container[data-group-name="${groupName}"]`);
+        
+                                if (!groupSectionContainer) {
+                                    console.warn(`No group container found for group ${groupName} on day ${day}`);
+                                    return; // Skip if no corresponding group container exists
+                                }
+        
+                                const section = groupSectionContainer.querySelector(".person-section");
+                                if (section) {
+                                    section.textContent = person.name;
+                                    section.style.backgroundColor = person.color;
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        function renderGroups() {
+            groupsContainer.innerHTML = ''; // Clear previous content
+        
+            for (const groupName in groups) {
+                const groupDiv = document.createElement('div');
+                groupDiv.classList.add('group');
+                groupDiv.innerHTML = `<strong>${groupName}</strong> 
+                    <button onclick="addPerson('${groupName}')">Add Person</button>
+                    <button onclick="deleteGroup('${groupName}', this)">Delete Group</button>
+                    <div id="group-${groupName}"></div>`;
+        
+                groupsContainer.appendChild(groupDiv);
+        
+                // Add people to the group
+                groups[groupName].forEach(person => {
+                    const personDiv = document.createElement('div');
+                    personDiv.classList.add('person');
+                    personDiv.style.background = person.color;
+                    personDiv.textContent = person.name;
+                    personDiv.style.cursor = 'pointer';
+        
+                    personDiv.oncontextmenu = function (event) {
+                        event.preventDefault();
+                        // Validate: Check if it exists and has at least 2 letters
+                        if (storedUser && storedUser.trim().length >= 2) {
+                            user = storedUser.trim(); // Store in 'user' variable
+                            
+                            if (confirm(`Are you sure you want to delete ${person.name}?`)) {
+                                groups[groupName] = groups[groupName].filter(p => p.name !== person.name);
+                                personDiv.remove();
+                                saveList("Groups", groups);
+    
+                                // Log the action if necessary
+                                const now = new Date();
+                                const timestamp = now.toLocaleTimeString(); // Get current time
+                                const thisDay = String(now.getDate()).padStart(2, '0');
+                                const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                                const thisYear = now.getFullYear();
+                                const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                            
+                                // Log action
+                                (async () => {
+                                    currentLog = await getList("Log");
+                                    const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                                    const logEntry = `[${formattedDate} ${timestamp}] ${user} has deleted ${person.name} from the group ${groupName}`;
+                                    currentLog[logKey] = logEntry;
+                                    saveList("Log", currentLog);
+                                })();
+                            }
+                        } else {
+                            alert("No valid user is logged in.");
+                            user = null; // Reset the user variable if invalid
+                        }
+                    };
+
+                    // Handle left-click to replace the person's name
+                    personDiv.onclick = function(event) {
+                        // Ensure it's a left-click (button 0)
+                        if (event.button === 0) {
+                            // Validate: Check if it exists and has at least 2 letters
+                            if (storedUser && storedUser.trim().length >= 2) {
+                                user = storedUser.trim(); // Store in 'user' variable
+
+                                const oldName = person.name;
+                                const newName = prompt(`Are you sure you want to replace ${person.name}? If so, enter a new person's name:`);
+                                const personExists = groups[groupName].some(p => p.name === newName.trim());
+                                if (personExists) {
+                                    // If the name already exists, show an alert and don't replace the name
+                                    alert(`The name "${newName.trim()}" already exists in the group.`);
+                                } else if (newName && newName.trim() !== "") {
+                                    // Replace the old name with the new name
+                                    groups[groupName] = groups[groupName].map(p => {
+                                        if (p.name === person.name) {
+                                            p.name = newName.trim(); // Replace the name
+                                        }
+                                        return p;
+                                    });
+    
+                                    // Update the name in the currentLiveRoster object
+                                    for (let topKey in currentLiveRoster) {
+                                        const group = currentLiveRoster[topKey];
+                        
+                                        // Iterate over the nested keys (1, 2, 3, ...)
+                                        for (let subKey in group) {
+                                            const positions = group[subKey];
+                                            // Dynamically check and update based on the groupName (either 'mech' or 'Auto')
+                                            if (positions[groupName] && positions[groupName].name === personDiv.textContent) {
+                                                positions[groupName].name = newName.trim();
+                                            }
+                                        }
+                                    }
+    
+                                    // Log the action if necessary
+                                    const now = new Date();
+                                    const timestamp = now.toLocaleTimeString(); // Get current time
+                                    const thisDay = String(now.getDate()).padStart(2, '0');
+                                    const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                                    const thisYear = now.getFullYear();
+                                    const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+                                
+                                    // Log action
+                                    (async () => {
+                                        currentLog = await getList("Log");
+                                        const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                                        const logEntry = `[${formattedDate} ${timestamp}] ${user} has replaced ${oldName} with ${newName.trim()} `;
+                                        currentLog[logKey] = logEntry;
+                                        saveList("Log", currentLog);
+                                    })();
+    
+                                    // Update the displayed name in the div
+                                    personDiv.textContent = newName;
+                        
+                                    // Save the updated groups and roster
+                                    saveList("Groups", groups);
+                                    saveList("Roster", currentLiveRoster);
+                                }
+                            } else {
+                                alert("No valid user is logged in.");
+                                user = null; // Reset the user variable if invalid
+                            }
+                        }
+                    };
+        
+                    document.getElementById(`group-${groupName}`).appendChild(personDiv);
+                });
+            }
+        }
+
+        function autoGenerateRoster() {
+            // Validate: Check if it exists and has at least 2 letters
+            if (storedUser && storedUser.trim().length >= 2) {
+                user = storedUser.trim(); // Store in 'user' variable
+                
+                const confirmation = confirm("Are you sure you want to Auto Generate the Roster? This will remove all current data and cannot be undone.")
+                if (!confirmation) {    // If the user cancels, return without doing anything
+                    return;
+                }
+    
+                // Log the action if necessary
+                const now = new Date();
+                const timestamp = now.toLocaleTimeString(); // Get current time
+                const thisDay = String(now.getDate()).padStart(2, '0');
+                const thisMonth = String(now.getMonth() + 1).padStart(2, '0'); // Ensure 1-based month
+                const thisYear = now.getFullYear();
+                const formattedDate = `${thisDay}/${thisMonth}/${thisYear}`;
+            
+                // Log action (you can adjust this to your existing logging system)
+                (async () => {
+                    currentLog = await getList("Log");
+                    const logKey = `${formattedDate} ${timestamp}`; // Create a unique key (you can customize this)
+                    const logEntry = `[${formattedDate} ${timestamp}] ${user} has Auto Generated the roster for the year`;
+                    currentLog[logKey] = logEntry;
+                    saveList("Log", currentLog);
+                })();
+                
+    
+                const year = new Date().getFullYear(); // Use the current year
+            
+                let previousPersonWeeklyIndex = {};
+                let previousPersonDailyIndex = {};
+            
+                for (let month = 0; month < 12; month++) {
+                    newRoster[month] = {};
+            
+                    // Get the first and last day of the current month
+                    const firstDay = new Date(year, month, 1);
+                    const lastDay = new Date(year, month + 1, 0);
+                    const totalDays = lastDay.getDate();
+            
+                    // Get the first weekday (JS: Sunday = 0, Monday = 1, ..., Saturday = 6)
+                    let weekDay1 = firstDay.getDay(); 
+                    weekDay1 = weekDay1 === 0 ? 6 : weekDay1 - 1; // Shift to Monday-starting week
+    
+                    const feb14WeekDay = (weekDay1 + 14) % 7;
+            
+                    Object.entries(groups).forEach(([groupName, group]) => {
+                        let personWeeklyIndex = previousPersonWeeklyIndex[groupName] || 0; // Start from the last month's index or 0
+                        let personDailyIndex = previousPersonDailyIndex[groupName] || 0; // Start from the last month's index or 0
+            
+                        for (let day = 1; day <= totalDays; day++) {
+                            if (!newRoster[month][day]) {
+                                newRoster[month][day] = {};
+                            }
+            
+                            // Calculate which day of the week this is (adjust based on starting day of the month)
+                            const currentWeekDay = (weekDay1 + day - 1) % 7;
+            
+                            // Check if the month is between January, mid-February, and from July onwards
+                            if ((month === 0 || (month === 1 && day <= (14 - feb14WeekDay))) || month >= 6) {
+                                // Assign the same person for the entire week (Monday to Sunday)
+                                newRoster[month][day][groupName] = {
+                                    name: group[personWeeklyIndex].name,
+                                    color: group[personWeeklyIndex].color
+                                };
+            
+                                // Rotate the person every week (every Sunday)
+                                if (currentWeekDay === 6) { // Sunday (6) is the end of the week
+                                    personWeeklyIndex = (personWeeklyIndex + 1) % group.length;  // Rotate person in the group
+                                }
+                            }
+                            // For months between February to June, rotate people for Monday-Thursday and Friday-Sunday
+                            else {
+                                // Assign Monday to Thursday (4 days) with one person
+                                if (currentWeekDay >= 0 && currentWeekDay <= 3) { // Monday (0) to Thursday (3)
+                                    newRoster[month][day][groupName] = {
+                                        name: group[personDailyIndex].name,
+                                        color: group[personDailyIndex].color
+                                    };
+                                // Rotate the people every day
+                                personDailyIndex = (personDailyIndex + 1) % group.length;  // Rotate person in the group
+                                }
+                                // Assign Friday to Sunday (3 days) with the same person
+                                else if (currentWeekDay >= 4 && currentWeekDay <= 6) { // Friday (4) to Sunday (6)
+                                    newRoster[month][day][groupName] = {
+                                        name: group[personWeeklyIndex].name,
+                                        color: group[personWeeklyIndex].color
+                                    };
+                                }
+            
+                                // Rotate the people every weekend
+                                if (currentWeekDay === 6) { // Saturday (6) is the end of the week
+                                    personWeeklyIndex = (personWeeklyIndex + 1) % group.length;  // Rotate person in the group
+                                }
+                            }
+                        }
+            
+                        // Save the personIndex for the next month
+                        previousPersonWeeklyIndex[groupName] = personWeeklyIndex;
+                        previousPersonDailyIndex[groupName] = personDailyIndex;
+                    });
+                }
+                saveList("Roster", newRoster);
+            } else {
+                alert("No valid user is logged in.");
+                user = null; // Reset the user variable if invalid
+            }
+        }
+
+        // Function to generate a color that is neither too dark nor too light
+        function generateColor() {
+            const hue = Math.floor(Math.random() * 360); // Random hue between 0 and 360
+            const saturation = 100; // Full saturation
+            const lightness = Math.floor(Math.random() * 40) + 40; // Lightness between 40 and 80 to avoid too dark or too light colors
+        
+            // Convert HSL to RGB
+            const rgb = hslToRgb(hue, saturation, lightness);
+        
+            // Convert RGB to hex
+            const hexColor = rgbToHex(rgb[0], rgb[1], rgb[2]);
+        
+            return hexColor;
+        }
+        
+        // Convert HSL to RGB
+        function hslToRgb(h, s, l) {
+            s /= 100;
+            l /= 100;
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+            const m = l - c / 2;
+            let r, g, b;
+        
+            if (h >= 0 && h < 60) {
+                r = c;
+                g = x;
+                b = 0;
+            } else if (h >= 60 && h < 120) {
+                r = x;
+                g = c;
+                b = 0;
+            } else if (h >= 120 && h < 180) {
+                r = 0;
+                g = c;
+                b = x;
+            } else if (h >= 180 && h < 240) {
+                r = 0;
+                g = x;
+                b = c;
+            } else if (h >= 240 && h < 300) {
+                r = x;
+                g = 0;
+                b = c;
+            } else {
+                r = c;
+                g = 0;
+                b = x;
+            }
+        
+            return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+        }
+        
+        // Convert RGB to Hex
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        async function saveList(listName, list) {
+            const response = await fetch("/api/saveList", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ listName, list }),
+            });
+            const data = await response.json();
+        }
+
+        async function getList(listName) {
+            const response = await fetch(`/api/saveList?listName=${encodeURIComponent(listName)}`);
+            const data = await response.json();
+            return JSON.parse(data.list);
+        }
+
+    </script>
+
+</body>
+</html>
