@@ -25,8 +25,8 @@ export default function App() {
     const { data, error } = await supabase
       .from("water_levels")
       .select("*")
-      .order("timestamp", { ascending: false })
-      .limit(1);
+      //.order("timestamp", { ascending: false })
+      //.limit(1);
 
     console.log("fetchLatest data:", data);
     console.log("fetchLatest error:", error);
@@ -48,8 +48,8 @@ export default function App() {
     const { data, error } = await supabase
       .from("water_levels")
       .select("*")
-      .order("timestamp", { ascending: true })
-      .limit(20);
+      //.order("timestamp", { ascending: true })
+      //.limit(20);
 
     console.log("fetchHistory data:", data);
     console.log("fetchHistory error:", error);
