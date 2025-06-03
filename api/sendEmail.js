@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     const data = await resend.emails.send({
-      from: 'EAST SIDE TANKS <onboarding@resend.dev>'
+      from: 'EAST SIDE TANKS <onboarding@resend.dev>',
       to,
       subject,
       text,
