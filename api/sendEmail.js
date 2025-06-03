@@ -8,11 +8,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
 
-  const { from, to, subject, text } = req.body;
+  const { to, subject, text } = req.body;
 
   try {
     const data = await resend.emails.send({
-      from,
+      from: 'EAST SIDE TANKS <onboarding@resend.dev>'
       to,
       subject,
       text,
