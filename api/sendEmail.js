@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     const data = await resend.emails.send({
-      from: 'Your Name <onboarding@resend.dev>', // Or your verified domain
+      from,
       to,
       subject,
       text,
