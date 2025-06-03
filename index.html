@@ -83,7 +83,8 @@
 
   document.getElementById('emailForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-  
+    
+    const from = "Tank Monitor",
     const to = document.getElementById('to').value;
     const subject = document.getElementById('subject').value;
     const text = document.getElementById('message').value;
@@ -91,7 +92,7 @@
     const response = await fetch('/api/sendEmail', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, subject, text })
+      body: JSON.stringify({ from, to, subject, text })
     });
   
     const result = await response.json();
