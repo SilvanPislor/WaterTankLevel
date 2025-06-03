@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
 
-  const { to, subject, text } = req.body;
+  const { from, to, subject, text } = req.body;
 
   try {
     const data = await resend.emails.send({
