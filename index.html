@@ -112,7 +112,7 @@
 function renderTable(levels) {
   const tbody = document.querySelector('#levelTable tbody');
   tbody.innerHTML = '';
-  levels.forEach(({ level, created_at }) => {
+  levels.forEach(({ level, timestamp }) => {
     const date = new Date(timestamp);
     const formatted = isNaN(date) ? 'Invalid Date' : date.toLocaleString();
     const row = document.createElement('tr');
