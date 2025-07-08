@@ -128,7 +128,7 @@
     function renderChart(levels) {
       const ctx = document.getElementById('levelChart').getContext('2d');
       const labels = levels.map(item => {
-        const date = new Date(item.timestamp);
+        const date = new Date(item.created_at);
         return isNaN(date) ? 'Invalid' : date.toLocaleTimeString();
       });
       const data = levels.map(item => item.level);
