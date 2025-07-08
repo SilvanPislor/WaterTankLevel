@@ -182,6 +182,10 @@
     }
 
     function renderChart(levels) {
+
+      // Sort levels from oldest to newest
+      levels.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      
       const ctx = document.getElementById('levelChart').getContext('2d');
       const labels = levels.map(item => {
         const date = new Date(item.created_at);
@@ -195,7 +199,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: 'Water Level (cm)',
+            label: 'Water Level (%)',
             data: data,
             fill: false,
             borderColor: 'blue',
