@@ -109,50 +109,51 @@
       }
     }
 
-function renderTable(levels) {
-  const tbody = document.querySelector('#levelTable tbody');
-  tbody.innerHTML = '';
-  levels.forEach(({ level, timestamp }) => {
-    const date = new Date(timestamp);
-    const formatted = isNaN(date) ? 'Invalid Date' : date.toLocaleString();
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${formatted}</td>
-      <td>${level.toFixed(2)}</td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-function renderChart(levels) {
-  const ctx = document.getElementById('levelChart').getContext('2d');
-  const labels = levels.map(item => {
-    const date = new Date(item.timestamp);
-    return isNaN(date) ? 'Invalid' : date.toLocaleTimeString();
-  });
-  const data = levels.map(item => item.level);
-
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Water Level (cm)',
-        data: data,
-        fill: false,
-        borderColor: 'blue',
-        tension: 0.1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: true },
-        title: { display: true, text: 'Live Water Levels' }
-      }
+    function renderTable(levels) {
+      const tbody = document.querySelector('#levelTable tbody');
+      tbody.innerHTML = '';
+      levels.forEach(({ level, timestamp }) => {
+        const date = new Date(timestamp);
+        console.log('timestamp:', timestamp);
+        const formatted = isNaN(date) ? 'Invalid Date' : date.toLocaleString();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${formatted}</td>
+          <td>${level.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+      });
     }
-  });
-}
+    
+    function renderChart(levels) {
+      const ctx = document.getElementById('levelChart').getContext('2d');
+      const labels = levels.map(item => {
+        const date = new Date(item.timestamp);
+        return isNaN(date) ? 'Invalid' : date.toLocaleTimeString();
+      });
+      const data = levels.map(item => item.level);
+    
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Water Level (cm)',
+            data: data,
+            fill: false,
+            borderColor: 'blue',
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            title: { display: true, text: 'Live Water Levels' }
+          }
+        }
+      });
+    }
 
     async function init() {
       const levels = await fetchWaterLevels();
