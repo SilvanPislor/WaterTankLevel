@@ -11,6 +11,7 @@
       padding: 0;
       background-color: #f4f4f4;
     }
+
     .top-banner {
       position: fixed;
       top: 0;
@@ -27,26 +28,71 @@
       font-size: 14px;
       z-index: 1000;
     }
+
     .main {
       margin-top: 60px;
       padding: 20px;
     }
+
+    .table-container {
+      max-height: 450px;
+      overflow-y: auto;
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
     }
+
     th, td {
       border: 1px solid #ddd;
       padding: 8px;
       text-align: left;
     }
+
     th {
       background-color: #f2f2f2;
     }
-    canvas {
-      max-width: 100%;
+
+    .chart-container {
+      overflow-x: auto;
       margin-top: 20px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+
+    #levelChart {
+      min-width: 1200px;
+      max-width: none;
+    }
+
+    form#emailForm {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 400px;
+    }
+
+    form input, form textarea {
+      padding: 8px;
+      font-size: 14px;
+      width: 100%;
+    }
+
+    form button {
+      padding: 10px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    form button:hover {
+      background: #0056b3;
     }
   </style>
 </head>
@@ -58,46 +104,49 @@
 
   <div class="main">
     <h2>Recent Water Levels</h2>
-    <table id="levelTable">
-      <thead>
-        <tr>
-          <th>Timestamp</th>
-          <th>Water Level (cm)</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
 
-    <canvas id="levelChart"></canvas>
+    <div class="table-container">
+      <table id="levelTable">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Water Level (cm)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="levelChart"></canvas>
+    </div>
+
+    <form id="emailForm">
+      <input type="email" id="to" placeholder="Recipient Email" required />
+      <input type="text" id="subject" placeholder="Subject" required />
+      <textarea id="message" placeholder="Message" required></textarea>
+      <button type="submit">Send Email</button>
+    </form>
   </div>
-
-  <form id="emailForm">
-    <input type="email" id="to" placeholder="Recipient Email" required />
-    <input type="text" id="subject" placeholder="Subject" required />
-    <textarea id="message" placeholder="Message" required></textarea>
-    <button type="submit">Send Email</button>
-  </form>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+    document.getElementById('emailForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const to = document.getElementById('to').value;
+      const subject = document.getElementById('subject').value;
+      const text = document.getElementById('message').value;
 
-  document.getElementById('emailForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const to = document.getElementById('to').value;
-    const subject = document.getElementById('subject').value;
-    const text = document.getElementById('message').value;
-  
-    const response = await fetch('/api/sendEmail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, subject, text })
+      const response = await fetch('/api/sendEmail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, text })
+      });
+
+      const result = await response.json();
+      alert(result.success ? 'Email sent!' : `Failed: ${result.error}`);
     });
-  
-    const result = await response.json();
-    alert(result.success ? 'Email sent!' : `Failed: ${result.error}`);
-  });
-    
+
     async function fetchWaterLevels() {
       try {
         const response = await fetch('/api/pullData.js');
@@ -114,7 +163,6 @@
       tbody.innerHTML = '';
       levels.forEach(({ level, created_at }) => {
         const date = new Date(created_at);
-        console.log('timestamp:', created_at);
         const formatted = isNaN(date) ? 'Invalid Date' : date.toLocaleString();
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -124,15 +172,16 @@
         tbody.appendChild(row);
       });
     }
-    
+
     function renderChart(levels) {
       const ctx = document.getElementById('levelChart').getContext('2d');
       const labels = levels.map(item => {
         const date = new Date(item.created_at);
         return isNaN(date) ? 'Invalid' : date.toLocaleTimeString();
       });
+
       const data = levels.map(item => item.level);
-    
+
       new Chart(ctx, {
         type: 'line',
         data: {
@@ -146,10 +195,15 @@
           }]
         },
         options: {
-          responsive: true,
+          responsive: false,
           plugins: {
             legend: { display: true },
             title: { display: true, text: 'Live Water Levels' }
+          },
+          scales: {
+            x: {
+              ticks: { maxRotation: 45, minRotation: 45 }
+            }
           }
         }
       });
