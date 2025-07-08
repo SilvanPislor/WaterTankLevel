@@ -10,8 +10,8 @@ export default async function handler(req, res) {
 
             const { data, error } = await supabase
                 .from("water_levels")
-                .select("level, timestamp")
-                .order("timestamp", { ascending: true }) // Or descending for latest first
+                .select("level, created_at")
+                .order("created_at", { ascending: true }) // Or descending for latest first
                 .limit(limit);
 
             if (error) throw error;
