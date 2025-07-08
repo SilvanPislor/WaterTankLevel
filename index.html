@@ -114,6 +114,7 @@ function renderTable(levels) {
   tbody.innerHTML = '';
   levels.forEach(({ level, timestamp }) => {
     const date = new Date(timestamp);
+    console.log('timestamp:', timestamp);
     const formatted = isNaN(date) ? 'Invalid Date' : date.toLocaleString();
     const row = document.createElement('tr');
     row.innerHTML = `
