@@ -6,12 +6,12 @@ export default async function handler(req, res) {
     try {
         if (req.method === "GET") {
             // Optional: Add query parameter support for limiting results (e.g., ?limit=100)
-            const limit = parseInt(req.query.limit) || 100;
+            const limit = parseInt(req.query.limit) || 200;
 
             const { data, error } = await supabase
                 .from("water_levels")
                 .select("level, created_at")
-                .order("created_at", { ascending: true }) // Or descending for latest first
+                .order("created_at", { ascending: false }) // <-- newest first
                 .limit(limit);
 
             if (error) throw error;
